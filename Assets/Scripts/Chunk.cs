@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(MeshFilter))]
-[RequireComponent(typeof(MeshRenderer))]
-public class Chunk : MonoBehaviour
+public class Chunk
 {
+    private GameObject chunkObject;
+    private MeshRenderer meshRenderer;
     private MeshFilter meshFilter;
 
     public ushort[] voxelMap = new ushort[VoxelData.chunkSizeCubed];
@@ -25,34 +25,37 @@ public class Chunk : MonoBehaviour
         set { voxelMap[x * VoxelData.chunkSize * VoxelData.chunkSize + y * VoxelData.chunkSize + z] = value; isDirty = true; }
     }
 
-    private void Start()
+    public Chunk(World world, Vector3 pos)
     {
-        meshFilter = GetComponent<MeshFilter>();
+        //GameObject that will hold chunk
+        var chunkObject = new GameObject("Chunk");
 
+        chunkObject.transform.position = pos;
+
+        //Add chunk to world at position
+        world.chunks.Add(new ChunkID((int)pos.x, (int)pos.y, (int)pos.z), this);
+
+        meshFilter = chunkObject.AddComponent<MeshFilter>();
+        meshRenderer = chunkObject.AddComponent<MeshRenderer>();
+        meshRenderer.material = world.chunkMaterial;
+
+        FillVoxelMap();
+        CreateMeshData();
+        DrawMesh();
+    }
+
+    private void FillVoxelMap()
+    {
         for (int x = 0; x < VoxelData.chunkSize; x++)
         {
             for (int y = 0; y < VoxelData.chunkSize; y++)
             {
                 for (int z = 0; z < VoxelData.chunkSize; z++)
                 {
-                    //var voxelType = (ushort)random.Next(0, 2);
-                    this[x, y, z] = 1;
+                    var voxelType = (ushort)random.Next(0, 2);
+                    this[x, y, z] = voxelType;
                 }
             }
-        }
-    }
-
-    private void Update()
-    {
-        if (isDirty)
-        {
-            CreateMeshData();
-            DrawMesh();
-
-            foreach(var vert in vertices)
-                Debug.Log(vert);
-
-            isDirty = false;
         }
     }
     private void CreateMeshData()
@@ -114,39 +117,6 @@ public class Chunk : MonoBehaviour
                 verticesIndex += VoxelData.TOTAL_INDICES;
             }
         }
-
-        //foreach(var vert in VoxelData.voxelVerts)
-        //    vertices.Add(vert + pos);
-
-        //foreach(var tri in VoxelData.voxelTris)
-        //    triangles.Add(tri + verticesIndex);
-
-        //foreach (var normal in VoxelData.voxelNormals)
-        //    normals.Add(normal);
-
-        //verticesIndex = vertices.Count;
-
-        ////entire faces
-        //for(int i = 0; i < 6; i++)
-        //{
-        //    //optimisation to reduce number of faces/triangles
-        //    //only draw face if adjacent voxel is air
-        //    if (!CheckVoxel(pos + VoxelData.faceChecks[i]))
-        //    {
-        //        //each vertex
-        //        for (int j = 0; j < 6; j++)
-        //        {
-        //index referencing a voxel vertex
-        //            int triangleIndex = VoxelData.voxelTris[i, j];
-        //offset voxel vert by a position
-        //            vertices.Add(VoxelData.voxelVerts[triangleIndex] + pos);
-        //            normals.Add(VoxelData.voxelNormals[triangleIndex]);
-        //            triangles.Add(verticesIndex);
-
-        //            verticesIndex++;
-        //        }
-        //    }
-        //}
     }
 
     public void DrawMesh()
@@ -154,7 +124,6 @@ public class Chunk : MonoBehaviour
         var mesh = new Mesh();
         mesh.SetVertices(vertices);
         mesh.SetTriangles(triangles.ToArray(), 0);
-        //mesh.SetNormals(normals);
         mesh.RecalculateNormals();
         meshFilter.mesh = mesh; 
     }
