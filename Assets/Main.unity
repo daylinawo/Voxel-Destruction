@@ -329,6 +329,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chunkMaterial: {fileID: 2100000, guid: 0bdcba654ff2e8e4b83ae38342ba0d64, type: 2}
+  voxelTypes:
+  - voxelName: None
+    isSolid: 0
+  - voxelName: Solid
+    isSolid: 1
+  - voxelName: Air
+    isSolid: 0
 --- !u!4 &1019338865
 Transform:
   m_ObjectHideFlags: 0

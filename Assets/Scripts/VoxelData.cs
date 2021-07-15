@@ -3,10 +3,19 @@ using UnityEngine;
 public static class VoxelData
 {
     public static readonly int chunkSize = 16;
+    public static readonly int chunkHeight = 16;
     public static readonly int chunkSizeCubed = 4096;
+    public static readonly int worldSizeInChunks = 3;
+    public static int worldSizeInVoxel
+    {
+        get { return chunkSize * worldSizeInChunks; }
+    }
     public const int TOTAL_CUBE_FACES = 6;
     public const int TOTAL_INDICES = 4;
     
+    public enum VoxelType { AIR = 1, SOLID = 2 };
+    public static readonly int TotalVoxelTypes = 2;
+
     public static readonly Vector3[] voxelVerts = new Vector3[8]
     {
         //Front
@@ -40,6 +49,16 @@ public static class VoxelData
         new Vector3 ( 1, 0, 0 ), //Right
         new Vector3 ( 0, 0, 1 ), //Back
         new Vector3 ( 0, -1, 0 )  //Bottom
+    };    
+    
+    public static readonly Vector3[] chunkSides = new Vector3[6]
+    {
+        new Vector3 ( 0, 0, -1 ) * chunkSize, //Front
+        new Vector3 ( 0, 1, 0 ) * chunkSize, //Top
+        new Vector3 ( -1, 0, 0 ) * chunkSize, //Left
+        new Vector3 ( 1, 0, 0 ) * chunkSize, //Right
+        new Vector3 ( 0, 0, 1 ) * chunkSize, //Back
+        new Vector3 ( 0, -1, 0 ) * chunkSize  //Bottom
     };
 
     public static readonly Vector3[] voxelNormals = new[]

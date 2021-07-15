@@ -16,8 +16,8 @@ public class Chunk
     List<Vector3> vertices = new List<Vector3>();
     List<int> triangles = new List<int>();
     List<Vector3> normals = new List<Vector3>();
-
-    private System.Random random = new System.Random();
+    
+    World world;
 
     public ushort this[int x, int y, int z]
     {
@@ -25,15 +25,14 @@ public class Chunk
         set { voxelMap[x * VoxelData.chunkSize * VoxelData.chunkSize + y * VoxelData.chunkSize + z] = value; isDirty = true; }
     }
 
-    public Chunk(World world, Vector3 pos)
+    public Chunk(World _world, Vector3 pos)
     {
+        world = _world;
+
         //GameObject that will hold chunk
-        var chunkObject = new GameObject("Chunk");
+        chunkObject = new GameObject("Chunk " + pos.x + ", " + pos.z);
 
-        chunkObject.transform.position = pos;
-
-        //Add chunk to world at position
-        world.chunks.Add(new ChunkID((int)pos.x, (int)pos.y, (int)pos.z), this);
+        position = pos;
 
         meshFilter = chunkObject.AddComponent<MeshFilter>();
         meshRenderer = chunkObject.AddComponent<MeshRenderer>();
@@ -44,37 +43,79 @@ public class Chunk
         DrawMesh();
     }
 
-    private void FillVoxelMap()
+    Vector3 position
     {
-        for (int x = 0; x < VoxelData.chunkSize; x++)
-        {
-            for (int y = 0; y < VoxelData.chunkSize; y++)
-            {
-                for (int z = 0; z < VoxelData.chunkSize; z++)
-                {
-                    var voxelType = (ushort)random.Next(0, 2);
-                    this[x, y, z] = voxelType;
-                }
-            }
-        }
+        get { return chunkObject.transform.position; }
+        set { chunkObject.transform.position = value; }
     }
-    private void CreateMeshData()
+
+    //setter and getter for active state of chunk
+    public bool IsActive
+    {
+        get { return chunkObject.activeSelf; }
+        set { chunkObject.SetActive(value); }
+    }
+
+    //clear mesh data
+    private void ClearMeshData()
     {
         verticesIndex = 0;
         vertices.Clear();
         normals.Clear();
         triangles.Clear();
+    }
 
+    //check if voxel exists in this chunk
+    bool IsVoxelInChunk(int x, int y, int z)
+    {
+        if (x < 0 || x > VoxelData.chunkSize - 1 || y < 0 || y > VoxelData.chunkSize - 1 || z < 0 || z > VoxelData.chunkSize - 1)
+            return false;
+        else
+            return true;
+    }
+
+    //check if voxel type is solid
+    bool CheckVoxel(Vector3 pos)
+    {
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
+
+        if (!IsVoxelInChunk(x, y, z))
+            return world.voxelTypes[world.GetVoxel(position + pos)].isSolid;
+
+        //return true if voxel is solid
+        return world.voxelTypes[this[x, y, z]].isSolid;
+    }
+
+    //populate voxel map with data
+    private void FillVoxelMap()
+    {
         for (int x = 0; x < VoxelData.chunkSize; x++)
         {
-            for (int y = 0; y < VoxelData.chunkSize; y++)
+            for (int y = 0; y < VoxelData.chunkHeight; y++)
             {
                 for (int z = 0; z < VoxelData.chunkSize; z++)
                 {
-                    var voxelType = this[x, y, z];
+                    this[x, y, z] = world.GetVoxel(new Vector3(x, y, z) + position);
+                }
+            }
+        }
+    }
 
-                    //if it is air ignore this block
-                    if (voxelType == 0)
+    //create mesh from voxel map data
+    private void CreateMeshData()
+    {
+        ClearMeshData();
+
+        for (int x = 0; x < VoxelData.chunkSize; x++)
+        {
+            for (int y = 0; y < VoxelData.chunkHeight; y++)
+            {
+                for (int z = 0; z < VoxelData.chunkSize; z++)
+                {
+                    //skip blocks that aren't solid
+                    if (!world.voxelTypes[this[x, y, z]].isSolid)
                         continue;
 
                     AddVoxelDataToChunk(new Vector3(x, y, z));
@@ -83,26 +124,15 @@ public class Chunk
         }
     }
 
-    //check if voxel at specified position exists
-    bool CheckVoxel(Vector3 pos)
-    {
-        int x = Mathf.FloorToInt(pos.x);
-        int y = Mathf.FloorToInt(pos.y);
-        int z = Mathf.FloorToInt(pos.z);
-
-        if (x < 0 || x > VoxelData.chunkSize - 1 || y < 0 || y > VoxelData.chunkSize - 1 || z < 0 || z > VoxelData.chunkSize - 1)
-            return false;
-
-        //return true if voxel is solid
-        return this[x, y, z] != 0;
-    }
-
     //add data for each voxel to chunk
     private void AddVoxelDataToChunk(Vector3 pos)
     {
         for (int i = 0; i < VoxelData.TOTAL_CUBE_FACES; i++)
         {
-            if (!CheckVoxel(pos + VoxelData.faceChecks[i]))
+            Vector3 adjacentVoxel = pos + VoxelData.faceChecks[i];
+
+            //draw voxel face if adjacent voxel is not a solid
+            if (!CheckVoxel(adjacentVoxel))
             {
                 for (int j = 0; j < VoxelData.TOTAL_INDICES; j++)
                 {
@@ -111,7 +141,7 @@ public class Chunk
                     normals.Add(VoxelData.voxelNormals[triangleIndex]);
                 }
 
-                foreach(var tri in VoxelData.voxelTrisOrder)
+                foreach (var tri in VoxelData.voxelTrisOrder)
                     triangles.Add(verticesIndex + tri);
 
                 verticesIndex += VoxelData.TOTAL_INDICES;
