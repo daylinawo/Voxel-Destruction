@@ -13,7 +13,6 @@ public static class VoxelData
     public const int TOTAL_CUBE_FACES = 6;
     public const int TOTAL_INDICES = 4;
     
-    public enum VoxelType { AIR = 1, SOLID = 2 };
     public static readonly int TotalVoxelTypes = 2;
 
     public static readonly Vector3[] voxelVerts = new Vector3[8]
