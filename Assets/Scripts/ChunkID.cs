@@ -7,9 +7,9 @@ public struct ChunkID : IEquatable<ChunkID>
 
     public ChunkID(int X, int Y, int Z)
     {
-        x = X >> 4;
-        y = Y >> 4;
-        z = Z >> 4;
+        x = X >> VoxelData.voxelXShift;
+        y = Y >> VoxelData.voxelYShift;
+        z = Z >> VoxelData.voxelZShift;
     }
     public bool Equals(ChunkID other)
     {

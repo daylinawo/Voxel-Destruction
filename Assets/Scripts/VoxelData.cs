@@ -2,13 +2,22 @@ using UnityEngine;
 
 public static class VoxelData
 {
-    public static readonly int chunkSize = 16;
-    public static readonly int chunkHeight = 16;
+    public static readonly int chunkWidth = 16;
+    public static readonly int chunkHeight = 64;
     public static readonly int chunkSizeCubed = 4096;
-    public static readonly int worldSizeInChunks = 3;
+    public static readonly int worldSizeInChunks = 16;
+    public static readonly byte voxelXShift = 4;
+    public static readonly byte voxelYShift = 6;
+    public static readonly byte voxelZShift = 4;
+
+    public static int chunkSize
+    {
+        get { return chunkWidth * chunkHeight * chunkWidth; }
+    }
+
     public static int worldSizeInVoxel
     {
-        get { return chunkSize * worldSizeInChunks; }
+        get { return chunkWidth * worldSizeInChunks; }
     }
     public const int TOTAL_CUBE_FACES = 6;
     public const int TOTAL_INDICES = 4;

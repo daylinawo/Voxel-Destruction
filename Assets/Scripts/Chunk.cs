@@ -8,7 +8,7 @@ public class Chunk
     private MeshRenderer meshRenderer;
     private MeshFilter meshFilter;
 
-    public ushort[] voxelMap = new ushort[VoxelData.chunkSizeCubed];
+    public ushort[] voxelMap = new ushort[VoxelData.chunkSize];
 
     private bool isDirty;
 
@@ -21,8 +21,8 @@ public class Chunk
 
     public ushort this[int x, int y, int z]
     {
-        get { return voxelMap[x * VoxelData.chunkSize * VoxelData.chunkSize + y * VoxelData.chunkSize + z]; }
-        set { voxelMap[x * VoxelData.chunkSize * VoxelData.chunkSize + y * VoxelData.chunkSize + z] = value; isDirty = true; }
+        get { return voxelMap[x * VoxelData.chunkWidth * VoxelData.chunkHeight + y * VoxelData.chunkWidth + z]; }
+        set { voxelMap[x * VoxelData.chunkWidth * VoxelData.chunkHeight + y * VoxelData.chunkWidth + z] = value; isDirty = true; }
     }
 
     public Chunk(World _world, Vector3 pos)
@@ -68,7 +68,7 @@ public class Chunk
     //check if voxel exists in this chunk
     bool IsVoxelInChunk(int x, int y, int z)
     {
-        if (x < 0 || x > VoxelData.chunkSize - 1 || y < 0 || y > VoxelData.chunkSize - 1 || z < 0 || z > VoxelData.chunkSize - 1)
+        if (x < 0 || x > VoxelData.chunkWidth - 1 || y < 0 || y > VoxelData.chunkWidth - 1 || z < 0 || z > VoxelData.chunkWidth - 1)
             return false;
         else
             return true;
@@ -91,11 +91,11 @@ public class Chunk
     //populate voxel map with data
     private void FillVoxelMap()
     {
-        for (int x = 0; x < VoxelData.chunkSize; x++)
+        for (int x = 0; x < VoxelData.chunkWidth; x++)
         {
             for (int y = 0; y < VoxelData.chunkHeight; y++)
             {
-                for (int z = 0; z < VoxelData.chunkSize; z++)
+                for (int z = 0; z < VoxelData.chunkWidth; z++)
                 {
                     this[x, y, z] = world.GetVoxel(new Vector3(x, y, z) + position);
                 }
@@ -108,11 +108,11 @@ public class Chunk
     {
         ClearMeshData();
 
-        for (int x = 0; x < VoxelData.chunkSize; x++)
+        for (int x = 0; x < VoxelData.chunkWidth; x++)
         {
             for (int y = 0; y < VoxelData.chunkHeight; y++)
             {
-                for (int z = 0; z < VoxelData.chunkSize; z++)
+                for (int z = 0; z < VoxelData.chunkWidth; z++)
                 {
                     //skip blocks that aren't solid
                     if (!world.voxelTypes[this[x, y, z]].isSolid)

@@ -7,9 +7,10 @@ public class World : MonoBehaviour
     public Material chunkMaterial;
     public VoxelType[] voxelTypes;
 
-    public Dictionary<ChunkID, Chunk> chunks = new Dictionary<ChunkID, Chunk>();
-    private System.Random random = new System.Random();
+    public Transform player;
+    private Vector3 spawnPoint;
 
+    public Dictionary<ChunkID, Chunk> chunks = new Dictionary<ChunkID, Chunk>();
 
     //get and set voxel in chunk
     public ushort this[int x, int y, int z]
@@ -17,42 +18,81 @@ public class World : MonoBehaviour
         get 
         {
             var chunk = chunks[ChunkID.FromWorldPos(x, y, z)];
-            return chunk[x & 0x0F, y & 0x0F, z & 0x0F];
+            Vector3Int voxelPos = GetVoxelChunkPosition(x, y, z);
+            return chunk[voxelPos.x, voxelPos.y, voxelPos.z];
         }
         
         set 
         {
             var chunk = chunks[ChunkID.FromWorldPos(x, y, z)];
-            chunk[x & 0x0F, y & 0x0F, z & 0x0F] = value;
+            Vector3Int voxelPos = GetVoxelChunkPosition(x, y, z);
+            chunk[voxelPos.x, voxelPos.y, voxelPos.z] = value;
         }
     }
 
     private void Start()
     {
+        spawnPoint = new Vector3(VoxelData.worldSizeInVoxel / 2f, VoxelData.chunkHeight, VoxelData.worldSizeInVoxel / 2f);
         CreateWorld();
     }
 
-    void CreateWorld()
+    //returns voxel position from array in 3D coordinates 
+    public Vector3Int GetVoxelChunkPosition(int x, int y, int z)
+    {
+        return new Vector3Int(x & 0xF, y & 0x3F, z & 0xF);
+    }
+
+    public void PrintVoxelInfo(int x, int y, int z)
+    {
+        Debug.Log("Voxel Position: " + x + ", " + y + ", " + z + 
+                  "\nVoxel type: " + voxelTypes[this[x, y, z]].voxelName);
+    }
+
+    public void CreateWorld()
     {
         for(int x = 0; x < VoxelData.worldSizeInChunks; x++)
         {
             for (int z = 0; z < VoxelData.worldSizeInChunks; z++)
             {
-                CreateChunk(VoxelData.chunkSize * x, VoxelData.chunkSize * z);
+                CreateChunk(VoxelData.chunkWidth * x, VoxelData.chunkWidth * z);
             }
         }
+
+        player.position = spawnPoint;
     }
 
-    void CreateChunk(int x, int z)
+    public void CreateChunk(int x, int z)
     {
-        //Create a new chunk
         Chunk chunk = new Chunk(this, new Vector3(x, 0, z));
 
         //Add chunk to dictionary for referencing
         chunks.Add(new ChunkID(x, 0, z), chunk);
     }
 
-  
+    public bool IsVoxelSolid(float _x, float _y, float _z)
+    {
+
+        //position
+        int x = Mathf.FloorToInt(_x);
+        int y = Mathf.FloorToInt(_y);
+        int z = Mathf.FloorToInt(_z);
+
+        ChunkID chunkID = ChunkID.FromWorldPos(x, y, z);
+
+        if (!chunks.ContainsKey(ChunkID.FromWorldPos(x, y, z)))
+        {
+           // Debug.Log("Chunk \"" + chunkID.x + ", " + chunkID.y + ", " + chunkID.z + "\"  is not in world.");
+            return false;
+        }
+
+        //Debug.Log("Chunk \"" + id.x + ", " + id.y + ", " + id.z + "\"  is in world.");
+        //Vector3Int voxelPos = GetVoxelPositionInChunk(x, y, z);
+        //PrintVoxelInfo(voxelPos.x, voxelPos.y, voxelPos.z);
+        
+        return voxelTypes[this[x, y, z]].isSolid;
+
+    }
+
     public bool IsChunkInWorld(Vector3 chunkPos)
     {
         int x = Mathf.FloorToInt(chunkPos.x);
@@ -84,10 +124,18 @@ public class World : MonoBehaviour
     //returns a voxel type
     public ushort GetVoxel(Vector3 pos)
     {
+        int yPos = Mathf.FloorToInt(pos.y);
+
+        //if outside world, voxel is air
         if (!IsVoxelInWorld(pos))
             return 0;
+        
+        int terrainHeight = Mathf.FloorToInt(VoxelData.chunkHeight * Noise.Get2DPerlin(new Vector2(pos.x, pos.z), 1100, 0.4f));
 
-        return 1;
+        if (yPos <= terrainHeight)
+            return 1;
+        else
+            return 0;
     }
 }
 
