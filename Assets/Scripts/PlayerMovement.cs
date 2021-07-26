@@ -6,6 +6,7 @@ public class PlayerMovement : MonoBehaviour
 {
     public CharacterController controller;
     public World world;
+    public Transform cam;
 
     public bool isGrounded;
 
@@ -13,19 +14,25 @@ public class PlayerMovement : MonoBehaviour
     public float gravity  = -9.8f;
     public float jumpForce  = .5f;
     public float playerWidth = 0.15f;
+    public int blastRadius = 4;
 
     private float verticalMomentum = 0;
     private bool jumpRequest;
     private float horizontal;
     private float vertical;
-
+    private bool collision;
     Vector3 velocity;
     Vector3 move;
+    Vector3 selectedBlock;
+
+    public float checkIncrement = 0.1f;
+    public float reach = 14f;
 
     // Update is called once per frame
     void Update()
     {
         GetPlayerInputs();
+        SelectBlock();
         controller.Move(move * speed * Time.deltaTime);
     }
 
@@ -35,6 +42,43 @@ public class PlayerMovement : MonoBehaviour
         if (jumpRequest)
             Jump();
         transform.Translate(velocity, Space.World);
+    }
+
+    private void SelectBlock()
+    {
+        float step = checkIncrement;
+
+        while(step < reach)
+        {
+            Vector3 pos = cam.position + (cam.forward * step);
+
+            if(world.IsVoxelSolid(pos))
+            {
+
+                Vector3Int newPos = Vector3Int.FloorToInt(pos);
+                selectedBlock = new Vector3(newPos.x, newPos.y, newPos.z);
+                collision = true;
+
+                return;
+            }
+
+            step += checkIncrement;
+        }
+
+        collision = false;
+    }
+
+    private void DestroyBlock(float offsetX, float offsetY)
+    {
+        int x = Mathf.FloorToInt(offsetX);
+        int y = Mathf.FloorToInt(offsetY);
+        Vector3 worldPos = new Vector3(selectedBlock.x + x, selectedBlock.y + y, selectedBlock.z);
+
+        if(world.IsVoxelSolid(worldPos))
+        {
+            Vector3 voxelPos = world.GetVoxelChunkPosition(worldPos);
+            world.GetChunk(worldPos).EditVoxel(voxelPos, 0);
+        }
     }
 
     private void CalculateVelocity()
@@ -64,6 +108,24 @@ public class PlayerMovement : MonoBehaviour
 
         if (isGrounded && Input.GetButtonDown("Jump"))
             jumpRequest = true;
+
+        if(collision)
+        {
+            if(Input.GetMouseButtonDown(0))
+            {
+                for (int x = 0; x < blastRadius; x++)
+                {
+                    for (int y = 0; y < blastRadius; y++)
+                    {
+                        if(Vector2.Distance(new Vector2(x-(blastRadius/2), 
+                                            y-(blastRadius/2)), Vector2.zero)<=(blastRadius/3))
+                        {
+                            DestroyBlock(x - (blastRadius / 2), y - (blastRadius / 2));
+                        }
+                    }
+                }           
+            }
+        }
     }
 
     private void Jump()
@@ -71,15 +133,14 @@ public class PlayerMovement : MonoBehaviour
         verticalMomentum = jumpForce;
         isGrounded = false;
         jumpRequest = false;
-        Debug.Log("Is Jumping");
     }
 
     public float CheckFallSpeed(float fallSpeed)
     {
-        if(world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y + fallSpeed, transform.position.z - playerWidth) ||
-           world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y + fallSpeed, transform.position.z - playerWidth) ||
-           world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y + fallSpeed, transform.position.z + playerWidth) ||
-           world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y + fallSpeed, transform.position.z + playerWidth))
+        if(world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y + fallSpeed, transform.position.z - playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y + fallSpeed, transform.position.z - playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y + fallSpeed, transform.position.z + playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y + fallSpeed, transform.position.z + playerWidth)))
         {
             isGrounded = true;
             return 0;
@@ -93,10 +154,10 @@ public class PlayerMovement : MonoBehaviour
 
     private float CheckUpSpeed(float upSpeed)
     {
-        if(world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y + 2f, transform.position.z - playerWidth) ||
-           world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y + 2f, transform.position.z - playerWidth) ||
-           world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y + 2f, transform.position.z + playerWidth) ||
-           world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y + 2f, transform.position.z + playerWidth))
+        if(world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f, transform.position.z - playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f, transform.position.z - playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f, transform.position.z + playerWidth)) ||
+           world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f, transform.position.z + playerWidth)))
         {
             return 0;
         }
@@ -110,8 +171,8 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            if (world.IsVoxelSolid(transform.position.x, transform.position.y, transform.position.z + playerWidth) ||
-                world.IsVoxelSolid(transform.position.x, transform.position.y + 1f, transform.position.z + playerWidth))
+            if (world.IsVoxelSolid(new Vector3(transform.position.x, transform.position.y, transform.position.z + playerWidth)) ||
+                world.IsVoxelSolid(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z + playerWidth)))
                 return true;
             else
                 return false;
@@ -121,8 +182,8 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            if (world.IsVoxelSolid(transform.position.x, transform.position.y, transform.position.z - playerWidth) ||
-                world.IsVoxelSolid(transform.position.x, transform.position.y + 1f, transform.position.z - playerWidth))
+            if (world.IsVoxelSolid(new Vector3(transform.position.x, transform.position.y, transform.position.z - playerWidth)) ||
+                world.IsVoxelSolid(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z - playerWidth)))
                 return true;
             else
                 return false;
@@ -133,8 +194,8 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            if (world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y, transform.position.z) ||
-                world.IsVoxelSolid(transform.position.x - playerWidth, transform.position.y + 1f, transform.position.z))
+            if (world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y, transform.position.z)) ||
+                world.IsVoxelSolid(new Vector3(transform.position.x - playerWidth, transform.position.y + 1f, transform.position.z)))
                 return true;
             else
                 return false;
@@ -145,8 +206,8 @@ public class PlayerMovement : MonoBehaviour
     {
         get
         {
-            if (world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y, transform.position.z) ||
-                world.IsVoxelSolid(transform.position.x + playerWidth, transform.position.y + 1f, transform.position.z))
+            if (world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y, transform.position.z)) ||
+                world.IsVoxelSolid(new Vector3(transform.position.x + playerWidth, transform.position.y + 1f, transform.position.z)))
                 return true;
             else
                 return false;

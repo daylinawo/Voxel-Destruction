@@ -12,7 +12,7 @@ public class World : MonoBehaviour
 
     public Dictionary<ChunkID, Chunk> chunks = new Dictionary<ChunkID, Chunk>();
 
-    //get and set voxel in chunk
+    // Get and set voxel in chunk
     public ushort this[int x, int y, int z]
     {
         get 
@@ -36,18 +36,7 @@ public class World : MonoBehaviour
         CreateWorld();
     }
 
-    //returns voxel position from array in 3D coordinates 
-    public Vector3Int GetVoxelChunkPosition(int x, int y, int z)
-    {
-        return new Vector3Int(x & 0xF, y & 0x3F, z & 0xF);
-    }
-
-    public void PrintVoxelInfo(int x, int y, int z)
-    {
-        Debug.Log("Voxel Position: " + x + ", " + y + ", " + z + 
-                  "\nVoxel type: " + voxelTypes[this[x, y, z]].voxelName);
-    }
-
+    // Create Initial World
     public void CreateWorld()
     {
         for(int x = 0; x < VoxelData.worldSizeInChunks; x++)
@@ -69,49 +58,76 @@ public class World : MonoBehaviour
         chunks.Add(new ChunkID(x, 0, z), chunk);
     }
 
-    public bool IsVoxelSolid(float _x, float _y, float _z)
+    // Returns voxel position from array in 3D coordinates 
+    public Vector3Int GetVoxelChunkPosition(int x, int y, int z)
+    {
+        return new Vector3Int(x & 0xF, y & 0x3F, z & 0xF);
+    }   
+    
+    // Returns voxel position from array in 3D coordinates 
+    public Vector3Int GetVoxelChunkPosition(Vector3 pos)
+    {
+        //position
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
+
+        return new Vector3Int(x & 0xF, y & 0x3F, z & 0xF);
+    }
+
+    public void PrintVoxelInfo(int x, int y, int z)
+    {
+        Debug.Log("Voxel Position: " + x + ", " + y + ", " + z + 
+                  "\nVoxel type: " + voxelTypes[this[x, y, z]].voxelName);
+    }
+
+
+
+    public bool IsVoxelSolid(Vector3 pos)
     {
 
         //position
-        int x = Mathf.FloorToInt(_x);
-        int y = Mathf.FloorToInt(_y);
-        int z = Mathf.FloorToInt(_z);
-
-        ChunkID chunkID = ChunkID.FromWorldPos(x, y, z);
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
 
         if (!chunks.ContainsKey(ChunkID.FromWorldPos(x, y, z)))
-        {
-           // Debug.Log("Chunk \"" + chunkID.x + ", " + chunkID.y + ", " + chunkID.z + "\"  is not in world.");
             return false;
-        }
 
-        //Debug.Log("Chunk \"" + id.x + ", " + id.y + ", " + id.z + "\"  is in world.");
-        //Vector3Int voxelPos = GetVoxelPositionInChunk(x, y, z);
-        //PrintVoxelInfo(voxelPos.x, voxelPos.y, voxelPos.z);
-        
         return voxelTypes[this[x, y, z]].isSolid;
 
     }
 
-    public bool IsChunkInWorld(Vector3 chunkPos)
+    public bool IsChunkInWorld(Vector3 pos)
     {
-        int x = Mathf.FloorToInt(chunkPos.x);
-        int y = Mathf.FloorToInt(chunkPos.y);
-        int z = Mathf.FloorToInt(chunkPos.z);
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
         
         Chunk chunk = chunks[ChunkID.FromWorldPos(x, y, z)];
 
         if (chunk != null)
-            return false;
-        else
             return true;
+        else
+            return false;
     }
 
-    public bool IsVoxelInWorld(Vector3 voxelPos)
+    public Chunk GetChunk(Vector3 pos)
     {
-        int x = Mathf.FloorToInt(voxelPos.x);
-        int y = Mathf.FloorToInt(voxelPos.y);
-        int z = Mathf.FloorToInt(voxelPos.z);
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
+
+        ChunkID id = ChunkID.FromWorldPos(x, y, z);
+
+        return chunks[id];
+    }
+
+    public bool IsVoxelInWorld(Vector3 pos)
+    {
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
 
         if (x >= 0 && x < VoxelData.worldSizeInVoxel &&
             y >= 0 && y < VoxelData.chunkHeight &&
@@ -121,7 +137,7 @@ public class World : MonoBehaviour
             return false;
     }
 
-    //returns a voxel type
+    // Returns a voxel type
     public ushort GetVoxel(Vector3 pos)
     {
         int yPos = Mathf.FloorToInt(pos.y);
